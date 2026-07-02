@@ -1,0 +1,56 @@
+[project]
+name = "gpu-insight-lab"
+version = "0.1.0"
+description = "Cross-vendor GPU performance, validation, profiling, and workload diagnostic platform."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["gpu", "cuda", "benchmark", "diagnostics", "nvidia", "performance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Benchmark",
+]
+dependencies = [
+    "psutil>=5.9.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.6.0"]
+reports = ["Jinja2>=3.1.0", "openpyxl>=3.1.0"]
+nvidia = ["pynvml>=11.5.0"]
+images = ["Pillow>=10.0.0"]
+all = [
+    "PySide6>=6.6.0",
+    "Jinja2>=3.1.0",
+    "openpyxl>=3.1.0",
+    "pynvml>=11.5.0",
+    "Pillow>=10.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.scripts]
+gpu-insight = "app.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "collectors*", "benchmarks*", "diagnosis*", "storage*", "reports*", "profilers*", "workloads*"]

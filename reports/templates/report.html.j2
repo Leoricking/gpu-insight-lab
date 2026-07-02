@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPU Insight Lab Performance and Validation Report</title>
+<style>
+  :root {
+    --color-primary: #1a237e;
+    --color-accent: #00bcd4;
+    --color-bg: #f5f5f5;
+    --color-card: #ffffff;
+    --color-border: #e0e0e0;
+    --color-text: #212121;
+    --color-muted: #757575;
+    --color-green: #2e7d32;
+    --color-yellow: #f57f17;
+    --color-red: #c62828;
+    --color-info: #0277bd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  header {
+    background: var(--color-primary);
+    color: white;
+    padding: 24px 32px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  header .subtitle {
+    font-size: 13px;
+    opacity: 0.8;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+  .section {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .section-header {
+    background: #eeeeee;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-primary);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .section-body { padding: 16px; }
+  .score-display {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px;
+  }
+  .score-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .score-circle .score-label {
+    font-size: 11px;
+    opacity: 0.8;
+    font-weight: 400;
+  }
+  .score-details { flex: 1; }
+  .score-details p { margin-bottom: 4px; font-size: 13px; }
+  .kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .kv-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 13px;
+  }
+  .kv-key {
+    min-width: 160px;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+  .kv-value { color: var(--color-text); word-break: break-all; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: #eeeeee;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+    color: var(--color-primary);
+  }
+  tbody tr:nth-child(even) { background: #fafafa; }
+  tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-info { background: #e1f5fe; color: var(--color-info); }
+  .badge-warning { background: #fff8e1; color: var(--color-yellow); }
+  .badge-error, .badge-critical { background: #ffebee; color: var(--color-red); }
+  .badge-healthy { background: #e8f5e9; color: var(--color-green); }
+  .badge-pass { background: #e8f5e9; color: var(--color-green); }
+  .badge-fail { background: #ffebee; color: var(--color-red); }
+  .diag-block {
+    border-left: 4px solid var(--color-border);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    background: #fafafa;
+    border-radius: 0 4px 4px 0;
+  }
+  .diag-block.sev-info { border-color: var(--color-info); }
+  .diag-block.sev-warning { border-color: var(--color-yellow); }
+  .diag-block.sev-error, .diag-block.sev-critical { border-color: var(--color-red); }
+  .diag-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+  .diag-meta { font-size: 12px; color: var(--color-muted); margin-bottom: 6px; }
+  .diag-summary { margin-bottom: 6px; font-size: 13px; }
+  .diag-evidence {
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    background: #f0f0f0;
+    padding: 6px 10px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+    word-break: break-all;
+  }
+  .diag-rec {
+    font-size: 12px;
+    color: var(--color-info);
+    font-style: italic;
+  }
+  .positive-list { list-style: none; }
+  .positive-list li::before { content: "✓ "; color: var(--color-green); font-weight: 700; }
+  .positive-list li { margin-bottom: 4px; font-size: 13px; }
+  .missing-list { list-style: none; }
+  .missing-list li::before { content: "– "; color: var(--color-muted); }
+  .missing-list li { margin-bottom: 3px; font-size: 13px; color: var(--color-muted); }
+  .limitations-box {
+    background: #fff3e0;
+    border: 1px solid #ffb300;
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--color-muted);
+    font-size: 12px;
+    border-top: 1px solid var(--color-border);
+    margin-top: 24px;
+  }
+  .meta-block {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .tool-yes { color: var(--color-green); font-weight: 600; }
+  .tool-no { color: var(--color-muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>GPU Insight Lab Performance and Validation Report</h1>
+  <div class="subtitle">Cross-Vendor GPU Performance, Validation and Workload Diagnostics &nbsp;·&nbsp; v{{ app_version }}</div>
+</header>
+
+<div class="container">
+
+  <!-- Score Section -->
+  <div class="section">
+    <div class="section-header">GPU Insight Score</div>
+    <div class="score-display">
+      <div class="score-circle">
+        <span>{{ score|round(1) if score is not none else "N/A" }}</span>
+        <span class="score-label">/ 100</span>
+      </div>
+      <div class="score-details">
+        <p><strong>Confidence:</strong> {{ (confidence * 100)|round(0)|int if confidence is not none else "N/A" }}%</p>
+        {% if positive_findings %}
+        <p style="margin-top:8px;"><strong>Positive Findings:</strong></p>
+        <ul class="positive-list">
+          {% for pf in positive_findings[:6] %}
+          <li>{{ pf }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if missing_data %}
+        <p style="margin-top:8px;"><strong>Missing Data:</strong></p>
+        <ul class="missing-list">
+          {% for md in missing_data[:6] %}
+          <li>{{ md }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- System Summary -->
+  <div class="section">
+    <div class="section-header">System Summary</div>
+    <div class="section-body">
+      <div class="kv-grid">
+        <div class="kv-item"><span class="kv-key">Hostname</span><span class="kv-value">{{ sys_info.hostname|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">OS</span><span class="kv-value">{{ sys_info.os_name|default('') }} {{ sys_info.os_release|default('') }}</span></div>
+        <div class="kv-item"><span class="kv-key">CPU</span><span class="kv-value">{{ sys_info.cpu_model|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Logical Cores</span><span class="kv-value">{{ sys_info.cpu_logical_cores|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">RAM Total</span><span class="kv-value">{{ "%.1f"|format(sys_info.ram_total_gb) }} GB</span></div>
+        <div class="kv-item"><span class="kv-key">Python</span><span class="kv-value">{{ sys_info.python_version|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">GPU</span><span class="kv-value">{{ nv_info.gpu_name|default('Not detected') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Driver Version</span><span class="kv-value">{{ nv_info.driver_version|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">CUDA Driver</span><span class="kv-value">{{ nv_info.cuda_driver_version|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">VRAM Total</span><span class="kv-value">{{ "%.0f"|format(nv_info.vram_total_mb) }} MB</span></div>
+        <div class="kv-item"><span class="kv-key">Temperature</span><span class="kv-value">{{ "%.0f"|format(nv_info.temperature_c) }} °C</span></div>
+        <div class="kv-item"><span class="kv-key">PCIe Link</span><span class="kv-value">Gen{{ pcie_info.pcie_gen_current|default('?') }} x{{ pcie_info.pcie_width_current|default('?') }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolchain Status -->
+  <div class="section">
+    <div class="section-header">Toolchain Status</div>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Available</th><th>Version</th><th>Path</th></tr>
+        </thead>
+        <tbody>
+          {% for tool_name, status in tools.items() %}
+          <tr>
+            <td><strong>{{ tool_name }}</strong></td>
+            <td>
+              {% if status.exists %}
+              <span class="tool-yes">Yes</span>
+              {% else %}
+              <span class="tool-no">No</span>
+              {% endif %}
+            </td>
+            <td>{{ status.version|default('N/A') }}</td>
+            <td style="font-size:11px;color:#999">{{ status.path|default('') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Benchmark Results -->
+  <div class="section">
+    <div class="section-header">Benchmark Results</div>
+    <div class="section-body">
+      {% if results %}
+      <table>
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Mean (ms)</th>
+            <th>Median (ms)</th>
+            <th>Std Dev</th>
+            <th>BW (GB/s)</th>
+            <th>Speedup</th>
+            <th>Correct</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr>
+            <td><strong>{{ r.test_name|default('') }}</strong></td>
+            <td>{{ "%.3f"|format(r.mean) if r.mean is not none else 'N/A' }}</td>
+            <td>{{ "%.3f"|format(r.median) if r.median is not none else 'N/A' }}</td>
+            <td>{{ "%.3f"|format(r.standard_deviation) if r.standard_deviation is not none else 'N/A' }}</td>
+            <td>{{ "%.2f"|format(r.bandwidth_gbps) if r.bandwidth_gbps is not none else 'N/A' }}</td>
+            <td>{{ "%.1f"|format(r.speedup) if r.speedup is not none else 'N/A' }}</td>
+            <td>
+              {% if r.correctness_pass == true %}
+              <span class="badge badge-pass">Pass</span>
+              {% elif r.correctness_pass == false %}
+              <span class="badge badge-fail">Fail</span>
+              {% else %}
+              <span style="color:#999">N/A</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:#666">{{ r.notes|default('') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="color:#999">No benchmark results available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Diagnosis -->
+  <div class="section">
+    <div class="section-header">Diagnosis Results</div>
+    <div class="section-body">
+      {% if diag_results %}
+      {% for d in diag_results %}
+      <div class="diag-block sev-{{ d.severity|lower }}">
+        <div class="diag-title">
+          <span class="badge badge-{{ d.severity|lower }}">{{ d.severity }}</span>
+          &nbsp;{{ d.title|default('') }}
+        </div>
+        <div class="diag-meta">
+          Category: <strong>{{ d.category|default('') }}</strong> &nbsp;·&nbsp;
+          Confidence: <strong>{{ (d.confidence * 100)|round(0)|int if d.confidence is not none else 'N/A' }}%</strong>
+        </div>
+        <div class="diag-summary">{{ d.summary|default('') }}</div>
+        {% if d.evidence %}
+        <div class="diag-evidence">{{ d.evidence }}</div>
+        {% endif %}
+        {% if d.recommendation %}
+        <div class="diag-rec">Recommendation: {{ d.recommendation }}</div>
+        {% endif %}
+        {% if d.verification_step %}
+        <div class="diag-rec" style="margin-top:4px">Verification: {{ d.verification_step }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:#999">No diagnosis results available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recommendations Summary -->
+  {% if recommendations %}
+  <div class="section">
+    <div class="section-header">Top Recommendations</div>
+    <div class="section-body">
+      <ul style="padding-left:20px">
+        {% for rec in recommendations %}
+        <li style="margin-bottom:8px;font-size:13px">{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Raw Metadata -->
+  <div class="section">
+    <div class="section-header">Session Metadata</div>
+    <div class="section-body">
+      <div class="kv-grid">
+        <div class="kv-item"><span class="kv-key">Session Name</span><span class="kv-value">{{ session_name|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Session ID</span><span class="kv-value">{{ session_id|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Started At</span><span class="kv-value">{{ started_at|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Completed At</span><span class="kv-value">{{ completed_at|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Status</span><span class="kv-value">{{ status|default('N/A') }}</span></div>
+        <div class="kv-item"><span class="kv-key">Report Generated</span><span class="kv-value">{{ generated_at }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Limitations -->
+  <div class="section">
+    <div class="section-header">Limitations and Disclaimers</div>
+    <div class="section-body">
+      <div class="limitations-box">
+        <p style="margin-bottom:8px">
+          GPU Insight Lab provides evidence-based diagnostics using measurable performance metrics.
+          It is <strong>not a replacement</strong> for Nsight Systems or Nsight Compute for deep kernel profiling.
+        </p>
+        <ul style="padding-left:20px;margin-bottom:8px">
+          <li>Low GPU utilization does <strong>not</strong> automatically mean the GPU is the bottleneck.</li>
+          <li>Low occupancy does <strong>not</strong> automatically indicate poor performance.</li>
+          <li>GEMM performance is reported without comparison to cuBLAS (which would always win).</li>
+          <li>AMD/ROCm support is <strong>NOT_VALIDATED</strong> in v{{ app_version }}.</li>
+          <li>All diagnosis results include evidence strings; no findings are made without data.</li>
+        </ul>
+        <p style="font-size:12px;color:#666">
+          NVIDIA, CUDA, Nsight, AMD, ROCm, HIP, and other referenced names are trademarks of their respective owners.
+          GPU Insight Lab is an independent engineering project not affiliated with or endorsed by NVIDIA or AMD.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  Generated by <strong>GPU Insight Lab v{{ app_version }}</strong> &nbsp;·&nbsp;
+  Cross-Vendor GPU Performance, Validation and Workload Diagnostics &nbsp;·&nbsp;
+  {{ generated_at }}
+</footer>
+
+</body>
+</html>

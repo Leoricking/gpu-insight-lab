@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build
+build/
+bin/*.exe
+bin/*.pdb
+*.obj
+*.exp
+*.lib
+
+# Output
+output/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+*.pytest_cache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Reports
+gpu_insight_report_*.json
+gpu_insight_report_*.csv
+gpu_insight_report_*.md
+gpu_insight_report_*.html
+gpu_insight_report_*.xlsx
+gpu_insight_session_*.json
+
+# Profiler outputs
+*.nsys-rep
+*.ncu-rep
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Claude Code local data
+.claude/
