@@ -1,5 +1,20 @@
 # GPU Insight Lab — Interview Guide
 
+## Project Positioning
+
+**Target Role**: GPU Software / CUDA Performance / HPC Validation + Acceleration Engineer
+
+This project is designed for an engineer with PCIe, HPC, driver, validation, and system
+debugging background who is transitioning into CUDA/HIP GPU performance engineering.
+
+**本專案不是把自己包裝成純 AI 工程師，而是定位成「懂硬體、PCIe、系統驗證與效能診斷的
+CUDA / GPU Performance Engineer」。**
+
+GPU Insight Lab 展示的不只是會寫 CUDA kernel，而是能把 PCIe 傳輸分析、benchmark 方法論、
+profiling 整合、正確性驗證、證據式診斷、版本回歸比較與專業報告輸出整合成完整工程流程。
+
+---
+
 ## How to Present This Project
 
 GPU Insight Lab demonstrates practical capabilities directly relevant to NVIDIA, AMD, and
@@ -258,3 +273,285 @@ monitoring that doesn't require a running driver.
 5. **Reference specific CUDA architecture differences** — warp size, shared memory banking,
    the difference between SM utilization (a coarse metric) and achieved occupancy (a precise
    micro-architectural metric). These demonstrate depth beyond "I wrote some GPU code."
+
+---
+
+## Job-Aligned Portfolio Projects
+
+### 1. CUDA Performance Lab
+
+A progression from CPU baseline → naive CUDA → optimized CUDA → Nsight profiling:
+
+| Kernel | CPU Baseline | Naive CUDA | Optimized | Profiling |
+|--------|-------------|------------|-----------|-----------|
+| vector_add | NumPy | ✓ | bandwidth-bound | Nsight Compute |
+| matrix_transpose | NumPy | non-coalesced | tiled + shared | Nsight Compute |
+| reduction | NumPy sum | shared mem | warp shuffle | Nsight Compute |
+| prefix_sum | NumPy cumsum | naive scan | Blelloch | Nsight Compute |
+| matmul | BLAS | naive | tiled + register | Nsight Compute |
+| conv2d | SciPy | direct | shared tiled | Nsight Compute |
+
+Each benchmark includes: bottleneck analysis, Nsight Compute `.ncu-rep`, and measured
+comparison table (GFLOP/s or GB/s).
+
+**Interview talking point**: "This lab shows I can implement, benchmark, and optimize CUDA
+kernels from scratch — and that I use the profiler to drive decisions, not guessing."
+
+---
+
+### 2. GPU PCIe Bandwidth Benchmark Tool
+
+Measures H2D, D2H, D2D bandwidth across transfer sizes; compares pinned vs. pageable memory;
+generates CSV / JSON / HTML / Excel report with PCIe bottleneck evidence.
+
+| Measurement | Transfer Sizes | Output |
+|-------------|---------------|--------|
+| H2D bandwidth | 1 MB – 1 GB | GB/s vs. size chart |
+| D2H bandwidth | 1 MB – 1 GB | GB/s vs. size chart |
+| D2D bandwidth | 1 MB – 1 GB | GB/s vs. size chart |
+| Pinned vs. pageable | 64 MB | speedup ratio |
+
+**Interview talking point**: "PCIe bandwidth is the first thing I check when a GPU workflow
+underperforms. This tool gives me evidence — not intuition — about where the bottleneck is."
+
+GPU Insight Lab's `PCIE_BOTTLENECK` diagnosis rule and PCIe collector complement this tool.
+
+---
+
+### 3. CUDA → HIP Portability Demo
+
+Ports reduction and tiled GEMM from CUDA to HIP with full API mapping, porting notes,
+and architectural comparison.
+
+| Item | CUDA | HIP |
+|------|------|-----|
+| Memory allocation | `cudaMalloc` | `hipMalloc` |
+| Warp shuffle | `__shfl_down_sync` | `__shfl_down` |
+| Warp size | 32 | 64 (GCN/RDNA) |
+| Build | `nvcc` | `hipcc` |
+| Profiler | Nsight Compute | ROCProfiler |
+
+**Interview talking point**: "Porting these kernels forced me to confront the
+warp-32 vs. wavefront-64 difference concretely, not just as a trivia fact."
+
+GPU Insight Lab's `docs/CUDA_VS_HIP.md` and AMD collector are the reference for
+cross-vendor detection and NOT_VALIDATED policy.
+
+---
+
+## AI Inference Kernel Roadmap (Kernel Lab Future Work)
+
+| Kernel | Status | Notes |
+|--------|--------|-------|
+| softmax | Roadmap | numerically stable (subtract max before exp) |
+| layer normalization | Roadmap | fused mean + variance |
+| GELU | Roadmap | exact and approximate variants |
+| 2D convolution | Roadmap | shared memory tiled |
+| prefix sum / scan | Roadmap | Blelloch work-efficient |
+| Flash Attention | Future | multi-head attention kernel |
+| INT8 quantization | Future | inference optimization |
+| PyTorch extension | Optional | `torch.utils.cpp_extension` |
+| TensorRT plugin | Future | inference backend integration note |
+
+---
+
+## CUDA Interview Question Bank
+
+### CUDA Fundamentals
+
+**Q: What are grid, block, and thread?**
+
+A: A grid is the collection of all thread blocks launched by a single kernel call. A block is
+a group of threads that can cooperate via shared memory and synchronize with `__syncthreads()`.
+A thread is the individual execution unit. The mapping is: GPU device executes a grid of blocks;
+each SM executes one or more blocks; each block contains up to 1024 threads organized in warps
+of 32.
+
+**Q: What is a warp?**
+
+A: A warp is a group of 32 threads that execute instructions in lockstep (SIMT — Single
+Instruction Multiple Threads). All 32 threads in a warp execute the same instruction at the
+same time. Warp divergence occurs when threads in the same warp take different execution paths
+(different branches of an `if` statement), causing serialization of both paths.
+
+**Q: What is global memory?**
+
+A: Global memory is the GPU's main DRAM (GDDR6X or HBM2). It has the largest capacity
+(e.g., 24 GB on RTX 3090), highest latency (~400–800 cycles), and highest bandwidth
+(e.g., 936 GB/s on A100 HBM2e). All threads from all blocks can read and write global memory.
+Coalesced access (contiguous aligned 128-byte transactions) is essential for performance.
+
+**Q: What is shared memory?**
+
+A: Shared memory is an on-chip, low-latency (≈ 4 cycles) memory space shared by all threads
+within the same block. It is programmer-managed (not a cache). It is used to stage data that
+will be reused multiple times (e.g., tiles in GEMM). Typical capacity: 48–96 KB per SM
+on Ampere. Bank conflicts arise when multiple threads access the same bank simultaneously
+(except broadcast).
+
+**Q: What is memory coalescing?**
+
+A: Coalescing is when threads in a warp access a contiguous, aligned 128-byte region of global
+memory, allowing the hardware to service all 32 accesses in a single DRAM transaction.
+Non-coalesced access (strided or random) requires multiple transactions, multiplying global
+memory traffic and reducing effective bandwidth.
+
+**Q: What is occupancy?**
+
+A: Occupancy is the ratio of active warps per SM to the maximum possible warps per SM.
+Higher occupancy enables the GPU to hide memory latency by switching to ready warps while
+others wait for data. Occupancy is limited by register usage, shared memory usage, and
+block size. Achieved occupancy (measured by Nsight Compute) ≠ theoretical occupancy
+(calculated from resource limits).
+
+**Q: What is warp divergence?**
+
+A: Warp divergence occurs when threads within the same warp execute different code paths due
+to a conditional branch. SIMT hardware must serialize both paths: threads taking the `if`
+branch execute while `else` threads are masked, then vice versa. This halves throughput in
+the worst case. Divergence can be reduced by restructuring data so threads in the same warp
+take the same path.
+
+---
+
+### Performance Optimization
+
+**Q: How do you optimize matrix transpose?**
+
+A: Naive transpose is non-coalesced on writes (or reads). The fix is to load a tile into
+shared memory (coalesced reads from global), then write the tile transposed to output
+(coalesced writes). Add 1-element padding to the shared memory tile to avoid bank conflicts
+on the diagonal. This typically achieves 80–90% of peak memory bandwidth.
+
+**Q: How do you optimize reduction?**
+
+A: Use shared memory for per-block partial sums. For the final warp, replace `__syncthreads()`
+with `__shfl_down_sync` warp shuffle instructions (no synchronization needed within a warp).
+Use a two-pass approach: first reduce to one value per block, then reduce block results. Avoid
+atomic operations in the hot path; use them only for the final cross-block reduction.
+
+**Q: When should shared memory be used?**
+
+A: Use shared memory when data will be accessed multiple times by threads in the same block
+(reuse justifies the staging cost). Examples: GEMM tiles (each element reused TILE_SIZE times),
+convolution filters, reduction partial sums. Do not use shared memory for data accessed only
+once — the overhead of loading into shared memory outweighs the benefit.
+
+**Q: When should atomic operations be avoided?**
+
+A: Avoid atomics in the hot path of a kernel. Multiple threads competing for the same atomic
+location serialize, destroying parallelism. Instead, use a reduction pattern: compute per-thread
+partial results in registers, reduce within warps using shuffles, reduce within blocks using
+shared memory, then use one atomic per block to aggregate the final result.
+
+**Q: How do you overlap data transfer and compute?**
+
+A: Use CUDA streams. Issue `cudaMemcpyAsync` on stream A and a kernel on stream B simultaneously.
+The hardware can overlap H2D/D2H transfers (via the copy engine) with kernel execution (on
+the compute engine). Requires pinned (page-locked) host memory for async transfers. Verify
+overlap with Nsight Systems timeline.
+
+**Q: Why is pinned memory faster than pageable memory?**
+
+A: Pageable host memory can be paged out by the OS. Before a DMA transfer, the CUDA driver
+must lock the pages (pin them) to prevent paging during the transfer — adding latency.
+Pinned memory (`cudaMallocHost`) is always page-locked, so the DMA transfer starts immediately
+and the PCIe bus is used at full bandwidth. Also, pinned memory allows async (non-blocking)
+memcpy.
+
+**Q: How do you determine whether a workload is memory-bound or compute-bound?**
+
+A: Use the Roofline model. Plot measured GFLOP/s against arithmetic intensity (FLOP / byte).
+If the point falls on the memory bandwidth roof (left side), the workload is memory-bound.
+If it falls on the compute roof (right side), it is compute-bound. In Nsight Compute, look at
+the "Memory Throughput" and "SM Throughput" metrics — whichever is closer to 100% is the
+bottleneck.
+
+---
+
+### Debug / Profiling
+
+**Q: How do you debug CUDA kernels?**
+
+A: First, use `cuda-memcheck` or `compute-sanitizer` to detect out-of-bounds accesses, race
+conditions, and uninitialized memory. Add a `CUDA_CHECK` macro after every CUDA API call.
+Use `printf` inside kernels (limited to Fermi and later) for small-scale debugging. For complex
+bugs, use `cuda-gdb` (Linux) or Nsight Visual Studio (Windows). Compare GPU output to a CPU
+reference for correctness validation.
+
+**Q: What is the difference between cudaGetLastError and cudaDeviceSynchronize?**
+
+A: `cudaGetLastError()` retrieves the last CUDA error on the calling thread's error stack
+without blocking. `cudaDeviceSynchronize()` blocks the CPU until all previously issued CUDA
+operations on the device complete — and returns any async error that occurred. Use
+`cudaDeviceSynchronize()` after kernel launches during debugging to catch kernel-launch
+errors that would otherwise be masked by async execution.
+
+**Q: What is the difference between Nsight Systems and Nsight Compute?**
+
+A: Nsight Systems gives a system-level timeline view: where kernels run, where PCIe transfers
+happen, where the CPU is stalled, how streams overlap. It answers "what is running when."
+Nsight Compute gives per-kernel SM-level counter data: achieved occupancy, memory throughput,
+pipe utilization, warp stall reasons. It answers "why is this kernel slow." Use Nsight Systems
+first to find the bottleneck kernel, then Nsight Compute to analyze it.
+
+**Q: How do you interpret memory throughput, occupancy, and kernel duration?**
+
+A: Memory throughput (GB/s) shows how much of the GPU's peak DRAM bandwidth is utilized.
+A value near theoretical peak (e.g., 900 GB/s on A100) means the kernel is memory-bound.
+Achieved occupancy (%) shows how many warps are active per SM vs. maximum; low occupancy
+(< 50%) can indicate register or shared memory pressure. Kernel duration (ms) is the wall
+clock time; compare across implementations to quantify speedup.
+
+---
+
+### NVIDIA / AMD Alignment
+
+**Q: What is the difference between CUDA and HIP?**
+
+A: CUDA is NVIDIA's proprietary GPU programming platform (nvcc compiler, CUDA runtime, PTX ISA).
+HIP is AMD's open-source GPU programming API that mirrors CUDA syntax, allowing code to run
+on both AMD (via ROCm) and NVIDIA GPUs. HIP code uses `hipMalloc`, `hipMemcpy`, `hipLaunchKernelGGL`.
+The `hipify` tool automates CUDA → HIP source translation. Key difference: warp size is 32 on
+NVIDIA; wavefront size is 64 on AMD GCN/RDNA.
+
+**Q: What is ROCm?**
+
+A: ROCm (Radeon Open Compute) is AMD's open-source GPU compute platform: drivers, runtime,
+math libraries (rocBLAS, rocFFT, MIOpen), profiling tools (ROCProfiler, Omniperf), and the
+HIP programming layer. ROCm is AMD's answer to CUDA — it enables high-performance GPU
+computing on AMD Instinct / Radeon Pro hardware.
+
+**Q: How would you port CUDA code to AMD HIP?**
+
+A: Step 1: run `hipify-perl` or `hipify-clang` on the source to auto-translate CUDA APIs
+to HIP equivalents. Step 2: manually review warp-level operations — `__shfl_down_sync`
+(CUDA) → `__shfl_down` (HIP), noting wavefront-64 semantics. Step 3: update CMakeLists.txt
+to use `hipcc`. Step 4: validate correctness by comparing output to CPU reference.
+Step 5: profile with ROCProfiler and tune for AMD's GCN/RDNA memory model.
+
+**Q: How would you design cross-vendor GPU code?**
+
+A: Define a thin abstraction layer that maps vendor-specific calls to a common interface:
+`gpu_malloc()`, `gpu_memcpy()`, `gpu_sync()`. Use conditional compilation (`#ifdef __HIP_PLATFORM_AMD__`)
+for vendor-specific paths. Keep kernels portable by avoiding NVIDIA-only extensions.
+Use standard warp size (32) as a safe default with runtime detection for wavefront-64.
+Test on both backends with the same correctness harness.
+
+**Q: What should be abstracted to support CUDA and HIP backends?**
+
+A: Abstractions worth maintaining: memory management (`gpu_malloc`/`gpu_free`), host-device
+transfers (`gpu_memcpy_h2d`/`d2h`), synchronization (`gpu_sync`), error handling macro,
+and kernel launch syntax. Keep math library calls (cuBLAS → rocBLAS) behind a thin BLAS
+wrapper. Avoid abstracting kernel internals — write separate CUDA and HIP kernel files when
+warp/wavefront differences require different logic.
+
+---
+
+## Portfolio Presentation Order (Interview)
+
+1. **GPU Insight Lab** — shows full engineering workflow (collection → analysis → storage → reporting)
+2. **CUDA Performance Lab** — shows kernel-level depth and profiling methodology
+3. **GPU PCIe Bandwidth Benchmark** — shows hardware/system-level awareness
+4. **CUDA → HIP Portability Demo** — shows cross-vendor adaptability
+5. **See also**: `docs/12_WEEK_CUDA_JOB_ROADMAP.md` for the full learning path behind this portfolio

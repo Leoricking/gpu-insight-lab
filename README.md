@@ -403,6 +403,27 @@ For the complete data flow diagram and design decisions, see
 
 ---
 
+## Interview Demo Positioning
+
+GPU Insight Lab is designed as an interview-ready GPU engineering portfolio project. It
+demonstrates not only CUDA kernel programming, but also PCIe transfer analysis, benchmark
+methodology, profiling integration, correctness validation, evidence-based diagnosis,
+regression comparison, and professional report generation.
+
+Traditional CUDA samples show that a developer can write kernels. GPU Insight Lab shows
+that the developer can build a reproducible GPU software engineering workflow.
+
+**Target roles**: CUDA Performance Engineer · GPU Software Engineer · HPC Validation Engineer ·
+GPU PCIe / System Validation · NVIDIA / AMD GPU Platform Software
+
+See [`docs/INTERVIEW_GUIDE.md`](docs/INTERVIEW_GUIDE.md) for interview preparation, technical
+claims with evidence, job-aligned portfolio projects, and a full CUDA question bank.
+
+See [`docs/12_WEEK_CUDA_JOB_ROADMAP.md`](docs/12_WEEK_CUDA_JOB_ROADMAP.md) for the
+12-week CUDA → NVIDIA/AMD job readiness roadmap.
+
+---
+
 ## Limitations and Disclaimer
 
 - **NVIDIA-primary**: Full support for NVIDIA GPUs via pynvml/nvidia-smi. AMD GPU results
