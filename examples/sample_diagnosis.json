@@ -1,0 +1,92 @@
+{
+  "_note": "SAMPLE DATA — GPU Insight Lab mock diagnosis output for demo/testing. All values are fabricated.",
+  "session_id": "demo-sample-001",
+  "timestamp": "2026-07-07T00:01:30+00:00",
+  "gpu_insight_score": 72.5,
+  "health_score": 72.5,
+  "score_confidence": 0.65,
+  "confidence": 0.65,
+  "missing_data": [
+    "native_benchmark_executable",
+    "memory_bandwidth_test",
+    "transfer_overhead_data",
+    "gpu_speedup_data"
+  ],
+  "deductions": [
+    {"category": "environment_readiness", "pts": -3, "reason": "native executable not built"},
+    {"category": "pcie_memory", "pts": -5, "reason": "memory_bandwidth_test not run"},
+    {"category": "pcie_memory", "pts": -5, "reason": "transfer_overhead_data missing"}
+  ],
+  "positive_findings": [
+    "Python environment operational",
+    "nvidia-smi available",
+    "GPU temperature data available: 58.0 C",
+    "GPU temperature 58 C is below 85 C threshold",
+    "NVIDIA GPU detected: NVIDIA GeForce RTX 3090",
+    "CUDA runtime available",
+    "PCIe info collected: Gen4 x16",
+    "PCIe running at max capability"
+  ],
+  "bottleneck_classification": "TOOLCHAIN_INCOMPLETE",
+  "recommendations": [
+    "Install Nsight Systems and Nsight Compute from developer.nvidia.com",
+    "Build native benchmark: cmake -S native -B build && cmake --build build"
+  ],
+  "diagnosis_results": [
+    {
+      "rule_id": "toolchain_completeness",
+      "severity": "INFO",
+      "category": "HEALTHY",
+      "title": "Core Build Toolchain Complete",
+      "summary": "nvcc and cmake are present; native benchmarks can be built.",
+      "evidence": "Tool check: nvcc, cmake all found.",
+      "confidence": 1.0,
+      "recommendation": "No action required.",
+      "verification_step": ""
+    },
+    {
+      "rule_id": "profiler_unavailable",
+      "severity": "INFO",
+      "category": "TOOLCHAIN_INCOMPLETE",
+      "title": "Profiling Tools Not Available",
+      "summary": "Missing: nsys (Nsight Systems), ncu (Nsight Compute).",
+      "evidence": "Tool check: nsys=missing, ncu=missing. This is informational.",
+      "confidence": 1.0,
+      "recommendation": "Install Nsight Systems and Nsight Compute from developer.nvidia.com.",
+      "verification_step": "Run 'nsys --version' and 'ncu --version' after installation."
+    },
+    {
+      "rule_id": "vram_pressure",
+      "severity": "INFO",
+      "category": "HEALTHY",
+      "title": "VRAM Utilization Normal",
+      "summary": "VRAM utilization is 2% — within healthy range.",
+      "evidence": "vram_utilization=0.021 <= threshold=0.90, used=512MB, total=24576MB",
+      "confidence": 0.9,
+      "recommendation": "",
+      "verification_step": ""
+    },
+    {
+      "rule_id": "thermal_throttle",
+      "severity": "INFO",
+      "category": "HEALTHY",
+      "title": "GPU Temperature Normal",
+      "summary": "GPU temperature 58 C is within normal operating range (<85 C).",
+      "evidence": "gpu_temperature=58.0 <= threshold=85.0 C",
+      "confidence": 0.9,
+      "recommendation": "No action required.",
+      "verification_step": ""
+    },
+    {
+      "rule_id": "pinned_vs_pageable",
+      "severity": "INFO",
+      "category": "INSUFFICIENT_DATA",
+      "title": "Pinned vs Pageable Bandwidth: Insufficient Data",
+      "summary": "Memory bandwidth test did not produce separate pinned/pageable results.",
+      "evidence": "Missing data: pinned_h2d_bandwidth, pageable_h2d_bandwidth",
+      "confidence": 0.0,
+      "recommendation": "Run the memory_bandwidth test with the native benchmark executable.",
+      "verification_step": "Run: gpu_insight_benchmark --test memory_bandwidth"
+    }
+  ]
+}

@@ -322,6 +322,51 @@ def generate(
 
     _auto_width(ws_raw)
 
+    # ------------------------------------------------------------------ INTERVIEW DEMO SUMMARY
+    ws_demo = wb.create_sheet("Interview Demo")
+    ws_demo["A1"] = "GPU Insight Lab — Interview Demo Summary: Implemented vs. Roadmap"
+    ws_demo["A1"].font = TITLE_FONT
+    ws_demo.merge_cells("A1:D1")
+
+    ws_demo["A3"] = "IMPLEMENTED FEATURES"
+    ws_demo["A3"].font = Font(bold=True, color="2E7D32")
+    implemented = [
+        "System Inspector (CPU/GPU/PCIe/CUDA telemetry)",
+        "Memory Benchmark (H2D/D2H/D2D via native CUDA binary)",
+        "Kernel Lab (vector_add, reduction, transpose, gemm_naive, gemm_tiled, stream_pipeline)",
+        "Evidence-based Diagnosis Engine (9 rules, evidence strings required)",
+        "GPU Insight Score (0-100 composite across 6 categories)",
+        "Multi-format Reports (JSON, CSV, Markdown, HTML, Excel)",
+        "SQLite Session History with delta comparison",
+        "PySide6 GUI (QMainWindow + QThread workers)",
+        "CLI Automation (10 commands, --json flag)",
+        "CUDA to HIP Portability Demo (vector_add_hip.cpp — NOT_VALIDATED on AMD hardware)",
+    ]
+    for i, feat in enumerate(implemented, 4):
+        ws_demo.cell(i, 1, feat)
+
+    roadmap_row = 4 + len(implemented) + 1
+    ws_demo.cell(roadmap_row, 1, "ROADMAP / NOT YET IMPLEMENTED").font = Font(bold=True, color="C62828")
+    roadmap = [
+        "ROADMAP: softmax, layer_norm, GELU (AI inference kernels)",
+        "ROADMAP: Flash Attention kernel",
+        "ROADMAP: INT8 quantization",
+        "ROADMAP: PyTorch extension integration",
+        "ROADMAP: TensorRT plugin",
+        "ROADMAP: cuFFT / cuBLAS full benchmark suite",
+        "ROADMAP: Streamlit dashboard",
+        "ROADMAP: Parquet storage backend",
+        "ROADMAP: Multi-machine import",
+        "ROADMAP: Company report templates",
+        "ROADMAP: Batch execution / session manifests",
+        "ROADMAP: Pass/fail policy YAML",
+        "NOT_VALIDATED: AMD HIP real GPU benchmarks (requires ROCm hardware)",
+    ]
+    for i, feat in enumerate(roadmap, roadmap_row + 1):
+        ws_demo.cell(i, 1, feat)
+
+    _auto_width(ws_demo)
+
     # ------------------------------------------------------------------ COMPARISON (placeholder)
     ws_cmp = wb.create_sheet("Comparison")
     ws_cmp.cell(1, 1, "Comparison Sheet").font = TITLE_FONT

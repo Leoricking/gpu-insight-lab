@@ -27,6 +27,9 @@ set(CUDA_SOURCES
     cuda/memory_bandwidth.cu
     cuda/stream_pipeline.cu
     cuda/image_grayscale.cu
+    # Skeletons — NOT_VALIDATED, compile to ensure no syntax errors
+    cuda/prefix_sum.cu
+    cuda/convolution_2d.cu
 )
 
 set(CPP_SOURCES

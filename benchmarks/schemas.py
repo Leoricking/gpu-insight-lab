@@ -93,6 +93,86 @@ class BenchmarkResult:
 
 
 @dataclass
+class MemoryBenchmarkResult:
+    """Result record for a memory transfer or bandwidth test."""
+
+    # Identity
+    schema_version: str = SCHEMA_VERSION
+    timestamp: float = field(default_factory=time.time)
+
+    # Test config
+    test_name: str = ""
+    transfer_direction: str = "N_A"        # H2D / D2H / D2D / N_A
+    memory_type: str = "device"            # pageable / pinned / device
+    transfer_size_bytes: int = 0
+
+    # Results
+    bandwidth_gbps: Optional[float] = None
+    latency_ms: Optional[float] = None
+    iterations: int = 0
+
+    # Backend / validation
+    backend: str = "mock"                  # cuda / hip / cpu_fallback / mock
+    status: str = "NOT_VALIDATED"          # PASS / FAIL / SKIPPED / NOT_VALIDATED
+    reason: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: v for k, v in self.__dict__.items()}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MemoryBenchmarkResult":
+        obj = cls()
+        for k, v in data.items():
+            if hasattr(obj, k):
+                setattr(obj, k, v)
+        return obj
+
+
+@dataclass
+class KernelBenchmarkResult:
+    """Result record for a CUDA/HIP kernel benchmark."""
+
+    # Identity
+    schema_version: str = SCHEMA_VERSION
+    timestamp: float = field(default_factory=time.time)
+
+    # Test config
+    kernel_name: str = ""
+    input_size: int = 0
+
+    # Timing
+    cpu_time_ms: Optional[float] = None
+    gpu_time_ms: Optional[float] = None
+
+    # Performance
+    speedup: Optional[float] = None
+    bandwidth_gbps: Optional[float] = None
+
+    # Correctness
+    correctness_passed: Optional[bool] = None
+
+    # Optimization
+    optimization_level: str = "naive_gpu"  # cpu_baseline / naive_gpu / optimized_gpu / library
+    bottleneck: str = ""
+
+    # Backend / validation
+    backend: str = "mock"                  # cuda / hip / cpu_fallback / mock
+    status: str = "NOT_VALIDATED"          # PASS / FAIL / SKIPPED / NOT_VALIDATED
+    reason: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: v for k, v in self.__dict__.items()}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "KernelBenchmarkResult":
+        obj = cls()
+        for k, v in data.items():
+            if hasattr(obj, k):
+                setattr(obj, k, v)
+        return obj
+
+
+@dataclass
 class BenchmarkSession:
     """Container for a complete benchmark run session."""
 

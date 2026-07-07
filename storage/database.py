@@ -17,6 +17,8 @@ from storage.migrations import run_migrations
 logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_PATH = Path(__file__).parent / "gpu_insight.sqlite"
+# Legacy name that must never be used silently; we warn if found.
+_LEGACY_DB_NAMES = ["benchmark.sqlite", "gpu_doctor.sqlite", "gpu_workload_doctor.sqlite"]
 
 
 def _now_iso() -> str:
@@ -29,6 +31,20 @@ class Database:
     def __init__(self, db_path: Optional[Path] = None) -> None:
         self._path = db_path or _DEFAULT_DB_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        # Migration compatibility: detect old database names and warn.
+        # Never silently lose data.
+        for legacy_name in _LEGACY_DB_NAMES:
+            legacy_path = self._path.parent / legacy_name
+            if legacy_path.exists():
+                logger.warning(
+                    "Legacy database file detected: %s. "
+                    "GPU Insight Lab now uses '%s'. "
+                    "Data in the legacy file will NOT be read automatically. "
+                    "To migrate, copy the file to '%s' manually.",
+                    legacy_path,
+                    self._path.name,
+                    self._path,
+                )
         self._conn = self._connect()
         run_migrations(self._conn)
 

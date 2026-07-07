@@ -264,9 +264,10 @@ def run_single_test(
             _progress(100, f"Test {test_name} complete")
             return r
 
-    # Fallback
+    # Fallback: native not available — return SKIPPED, never raise
     result = BenchmarkResult(
         test_name=test_name,
+        notes="SKIPPED — native executable not found or CUDA unavailable",
         error=f"Test '{test_name}' not available: native executable not found",
     )
     return result

@@ -243,8 +243,23 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     """Run a specific benchmark test."""
     from benchmarks.runner import run_single_test  # noqa: PLC0415
 
-    print(f"[GPU Insight Lab] Running benchmark: {args.test}")
-    result = run_single_test(args.test)
+    # Normalize hyphen-to-underscore aliases for convenience
+    _TEST_ALIASES: Dict[str, str] = {
+        "vector-add": "vector_add",
+        "memory-bandwidth": "memory_bandwidth",
+        "memory": "memory_bandwidth",
+        "pcie": "memory_bandwidth",
+        "streams": "stream_pipeline",
+        "stream-pipeline": "stream_pipeline",
+        "gemm": "gemm_naive",
+        "image-grayscale": "image_grayscale",
+        "prefix-sum": "prefix_sum",
+        "convolution-2d": "convolution_2d",
+    }
+    test_name = _TEST_ALIASES.get(args.test, args.test)
+
+    print(f"[GPU Insight Lab] Running benchmark: {test_name}")
+    result = run_single_test(test_name)
 
     if args.json:
         d = result.to_dict() if hasattr(result, "to_dict") else {}
@@ -327,14 +342,27 @@ def cmd_export(args: argparse.Namespace) -> int:
     try:
         from storage.database import get_database  # noqa: PLC0415
         db = get_database()
-        session_data = db.get_session(int(args.session))
+        if getattr(args, "latest", False):
+            session_data = _resolve_latest_session()
+            if session_data is None:
+                print("No sessions found in database. Run quick-test first.", file=sys.stderr)
+                return 1
+        else:
+            session_id = getattr(args, "session", None)
+            if session_id is None:
+                print("Provide --session SESSION_ID or --latest", file=sys.stderr)
+                return 1
+            session_data = db.get_session(int(session_id))
     except Exception as exc:  # noqa: BLE001
         print(f"Error loading session: {exc}", file=sys.stderr)
         return 1
 
     if session_data is None:
-        print(f"Session {args.session} not found", file=sys.stderr)
+        print("Session not found", file=sys.stderr)
         return 1
+
+    # Normalize flat DB structure to nested report structure
+    session_data = _normalize_session_for_report(session_data)
 
     fmt = (args.format or "json").lower()
     output_dir = _Path(args.output_dir) if args.output_dir else None
@@ -366,18 +394,94 @@ def cmd_export(args: argparse.Namespace) -> int:
         return 1
 
 
+def _resolve_latest_session() -> Optional[Dict[str, Any]]:
+    """Return the most recent session from the DB, or None."""
+    from storage.database import get_database  # noqa: PLC0415
+    db = get_database()
+    sessions = db.get_sessions(limit=1)
+    if not sessions:
+        return None
+    return db.get_session(int(sessions[0]["id"]))
+
+
+def _normalize_session_for_report(session_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    When a session is loaded from the DB it has flat system fields (hostname, cpu, ram_gb).
+    Report generators expect nested dicts (system_info, nvidia_info, etc.).
+    This function promotes flat DB fields into the expected nested structure if needed.
+    """
+    if session_data is None:
+        return {}
+    # If already nested, return as-is
+    if "system_info" in session_data and isinstance(session_data["system_info"], dict):
+        return session_data
+
+    # Build nested dicts from flat DB fields
+    normalized = dict(session_data)
+    normalized["system_info"] = {
+        "hostname": session_data.get("hostname", ""),
+        "os_name": session_data.get("os", ""),
+        "os_release": "",
+        "cpu_model": session_data.get("cpu", ""),
+        "cpu_physical_cores": None,
+        "cpu_logical_cores": None,
+        "ram_total_gb": session_data.get("ram_gb", 0.0),
+        "ram_available_gb": None,
+        "python_version": "",
+    }
+    normalized["nvidia_info"] = {
+        "available": bool(session_data.get("gpu_name")),
+        "gpu_name": session_data.get("gpu_name", ""),
+        "gpu_uuid": "",
+        "driver_version": session_data.get("driver_version", ""),
+        "cuda_driver_version": session_data.get("cuda_version", ""),
+        "compute_capability": "",
+        "vram_total_mb": 0.0,
+        "vram_used_mb": 0.0,
+        "vram_free_mb": 0.0,
+        "temperature_c": 0.0,
+        "gpu_utilization_pct": None,
+        "power_draw_w": None,
+        "power_limit_w": None,
+        "performance_state": "",
+        "gpu_clock_mhz": None,
+        "mem_clock_mhz": None,
+    }
+    normalized["cuda_info"] = {
+        "nvcc_available": False,
+        "nvcc_version": session_data.get("cuda_version", ""),
+        "cuda_runtime_available": bool(session_data.get("cuda_version")),
+        "cuda_runtime_version": session_data.get("cuda_version", ""),
+        "native_benchmark_available": False,
+    }
+    normalized.setdefault("pcie_info", {})
+    normalized.setdefault("tool_status", {})
+    normalized.setdefault("amd_info", {})
+    return normalized
+
+
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """Show diagnosis for a session."""
     try:
         from storage.database import get_database  # noqa: PLC0415
         db = get_database()
-        session_data = db.get_session(int(args.session))
+        if getattr(args, "latest", False):
+            session_data = _resolve_latest_session()
+            if session_data is None:
+                print("No sessions found in database.", file=sys.stderr)
+                return 1
+        else:
+            session_id = getattr(args, "session", None)
+            if session_id is None:
+                print("Provide --session SESSION_ID or --latest", file=sys.stderr)
+                return 1
+            session_data = db.get_session(int(session_id))
     except Exception as exc:  # noqa: BLE001
         print(f"Error loading session: {exc}", file=sys.stderr)
         return 1
 
     if session_data is None:
-        print(f"Session {args.session} not found", file=sys.stderr)
+        print("Session not found", file=sys.stderr)
         return 1
 
     diag_results = session_data.get("diagnosis_results", []) or []
@@ -386,7 +490,8 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
         _print_json(diag_results)
         return 0
 
-    print(f"Diagnosis for session {args.session}:\n")
+    shown_id = session_data.get("id", getattr(args, "session", "latest"))
+    print(f"Diagnosis for session {shown_id}:\n")
     if not diag_results:
         print("  No diagnosis results.")
         return 0
@@ -407,6 +512,227 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
             print(f"  Recommend.: {rec}")
         print()
 
+    return 0
+
+
+def cmd_demo_report(args: argparse.Namespace) -> int:
+    """Generate all 4 sample reports from mock data into output/."""
+    from pathlib import Path as _Path  # noqa: PLC0415
+    import json as _json  # noqa: PLC0415
+
+    output_dir_str = getattr(args, "output_dir", "") or ""
+    if output_dir_str:
+        output_dir = _Path(output_dir_str)
+    else:
+        output_dir = _Path("output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Try loading examples/sample_session.json; fall back to inline mock data
+    sample_path = _Path(__file__).parent.parent / "examples" / "sample_session.json"
+    if sample_path.exists():
+        try:
+            with sample_path.open(encoding="utf-8") as fh:
+                session_data = _json.load(fh)
+        except Exception:  # noqa: BLE001
+            session_data = None
+    else:
+        session_data = None
+
+    if session_data is None:
+        # Inline mock session for demo
+        session_data = {
+            "session_id": "demo-sample-001",
+            "session_name": "Demo Sample Session",
+            "started_at": "2026-07-07T00:00:00+00:00",
+            "completed_at": "2026-07-07T00:01:30+00:00",
+            "status": "completed",
+            "health_score": 72.5,
+            "score_confidence": 0.65,
+            "score_details": {
+                "positive_findings": [
+                    "Python environment operational",
+                    "nvidia-smi available",
+                    "GPU temperature data available: 58.0 C",
+                ],
+                "missing_data": [
+                    "native_benchmark_executable",
+                    "memory_bandwidth_test",
+                ],
+                "deductions": [
+                    {"category": "environment_readiness", "pts": -3,
+                     "reason": "native executable not built"},
+                ],
+                "category_scores": {
+                    "environment_readiness": 13.0,
+                    "gpu_runtime_availability": 15.0,
+                    "pcie_memory_transfer": 10.0,
+                    "kernel_correctness": 20.0,
+                    "kernel_performance_consistency": 5.0,
+                    "thermal_power_stability": 9.5,
+                },
+            },
+            "system_info": {
+                "hostname": "demo-machine",
+                "os_name": "Windows",
+                "os_release": "10",
+                "cpu_model": "Intel Core i9-12900K",
+                "cpu_physical_cores": 16,
+                "cpu_logical_cores": 24,
+                "ram_total_gb": 64.0,
+                "ram_available_gb": 48.0,
+                "python_version": "3.11.9",
+            },
+            "nvidia_info": {
+                "available": True,
+                "gpu_name": "NVIDIA GeForce RTX 3090",
+                "gpu_uuid": "GPU-00000000-0000-0000-0000-000000000000",
+                "driver_version": "545.84",
+                "cuda_driver_version": "12.3",
+                "compute_capability": "8.6",
+                "vram_total_mb": 24576,
+                "vram_used_mb": 512,
+                "vram_free_mb": 24064,
+                "temperature_c": 58.0,
+                "gpu_utilization_pct": 0,
+                "power_draw_w": 35.0,
+                "power_limit_w": 370.0,
+                "performance_state": "P8",
+            },
+            "cuda_info": {
+                "nvcc_available": True,
+                "nvcc_version": "12.3",
+                "cuda_runtime_available": True,
+                "cuda_runtime_version": "12.3",
+                "native_benchmark_available": False,
+                "native_benchmark_path": "",
+            },
+            "pcie_info": {
+                "available": True,
+                "pcie_gen_current": 4,
+                "pcie_width_current": 16,
+                "pcie_gen_max": 4,
+                "pcie_width_max": 16,
+                "bandwidth_gbps_current": 31.5,
+                "bandwidth_gbps_theoretical": 32.0,
+                "is_bottlenecked": False,
+            },
+            "tool_status": {
+                "nvcc": {"exists": True, "version": "12.3", "path": "nvcc"},
+                "cmake": {"exists": True, "version": "3.28.0", "path": "cmake"},
+                "nvidia-smi": {"exists": True, "version": "545.84", "path": "nvidia-smi"},
+                "nsys": {"exists": False, "version": None, "path": None},
+                "ncu": {"exists": False, "version": None, "path": None},
+            },
+            "amd_info": {"available": False, "rocm_available": False},
+            "results": [
+                {
+                    "test_name": "cpu_vector_add",
+                    "data_type": "float32",
+                    "input_size": 1000000,
+                    "cpu_time_ms": 2.341,
+                    "gpu_time_ms": None,
+                    "bandwidth_gbps": None,
+                    "speedup": None,
+                    "correctness_pass": True,
+                    "mean": 2.341,
+                    "standard_deviation": 0.15,
+                    "notes": "CPU baseline — NumPy",
+                    "error": None,
+                    "backend": "cpu",
+                    "status": "PASS",
+                },
+                {
+                    "test_name": "vector_add",
+                    "data_type": "float32",
+                    "input_size": 16777216,
+                    "cpu_time_ms": 18.2,
+                    "gpu_time_ms": 0.82,
+                    "bandwidth_gbps": 245.3,
+                    "speedup": 22.2,
+                    "correctness_pass": True,
+                    "mean": 0.82,
+                    "standard_deviation": 0.03,
+                    "notes": "Sample data — NOT real measurement",
+                    "error": None,
+                    "backend": "cuda",
+                    "status": "PASS",
+                },
+                {
+                    "test_name": "gemm_tiled",
+                    "data_type": "float32",
+                    "input_size": 512,
+                    "cpu_time_ms": 1850.0,
+                    "gpu_time_ms": 4.7,
+                    "bandwidth_gbps": None,
+                    "speedup": 393.6,
+                    "correctness_pass": True,
+                    "mean": 4.7,
+                    "standard_deviation": 0.21,
+                    "notes": "Sample data — NOT real measurement",
+                    "error": None,
+                    "backend": "cuda",
+                    "status": "PASS",
+                },
+            ],
+            "diagnosis_results": [
+                {
+                    "rule_id": "toolchain_completeness",
+                    "severity": "INFO",
+                    "category": "HEALTHY",
+                    "title": "Core Build Toolchain Complete",
+                    "summary": "nvcc and cmake are present; native benchmarks can be built.",
+                    "evidence": "Tool check: nvcc, cmake all found.",
+                    "confidence": 1.0,
+                    "recommendation": "No action required.",
+                    "verification_step": "",
+                },
+                {
+                    "rule_id": "profiler_unavailable",
+                    "severity": "INFO",
+                    "category": "TOOLCHAIN_INCOMPLETE",
+                    "title": "Profiling Tools Not Available",
+                    "summary": "Missing: nsys (Nsight Systems), ncu (Nsight Compute).",
+                    "evidence": "Tool check: nsys=missing, ncu=missing.",
+                    "confidence": 1.0,
+                    "recommendation": "Install Nsight Systems and Nsight Compute from developer.nvidia.com.",
+                    "verification_step": "Run nsys --version and ncu --version after installation.",
+                },
+            ],
+        }
+
+    # Generate all 4 formats
+    results: Dict[str, Any] = {}
+    formats = [
+        ("json", "reports.json_report"),
+        ("md", "reports.markdown_report"),
+        ("html", "reports.html_report"),
+        ("xlsx", "reports.excel_report"),
+    ]
+
+    for fmt, module_path in formats:
+        try:
+            import importlib  # noqa: PLC0415
+            mod = importlib.import_module(module_path)
+            # Override filename to use "sample" tag
+            file_path = mod.generate(session_data, output_dir=output_dir)
+            # Rename to sample name
+            new_name = f"gpu_insight_report_sample.{fmt}"
+            new_path = output_dir / new_name
+            if file_path.name != new_name:
+                import shutil  # noqa: PLC0415
+                shutil.copy2(str(file_path), str(new_path))
+                try:
+                    file_path.unlink()
+                except OSError:
+                    pass
+                file_path = new_path
+            results[fmt] = str(file_path)
+            print(f"  [{fmt.upper():4s}] {file_path}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [{fmt.upper():4s}] FAILED: {exc}", file=sys.stderr)
+            results[fmt] = f"ERROR: {exc}"
+
+    print(f"\nDemo reports generated in: {output_dir.resolve()}")
     return 0
 
 
@@ -458,17 +784,25 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # export
     p_exp = sub.add_parser("export", help="Export session to report")
-    p_exp.add_argument("--session", required=True, help="Session ID")
+    p_exp_grp = p_exp.add_mutually_exclusive_group(required=True)
+    p_exp_grp.add_argument("--session", help="Session ID")
+    p_exp_grp.add_argument("--latest", action="store_true", help="Use the most recent session")
     p_exp.add_argument("--format", default="json",
-                       choices=["json", "csv", "markdown", "html", "excel"],
+                       choices=["json", "csv", "markdown", "md", "html", "excel", "xlsx"],
                        help="Report format")
     p_exp.add_argument("--output-dir", default="", help="Output directory")
     p_exp.add_argument("--json", action="store_true", help="JSON output (status only)")
 
     # diagnose
     p_diag = sub.add_parser("diagnose", help="Show diagnosis for a session")
-    p_diag.add_argument("--session", required=True, help="Session ID")
+    p_diag_grp = p_diag.add_mutually_exclusive_group(required=True)
+    p_diag_grp.add_argument("--session", help="Session ID")
+    p_diag_grp.add_argument("--latest", action="store_true", help="Use the most recent session")
     p_diag.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # demo-report
+    p_demo = sub.add_parser("demo-report", help="Generate sample reports from mock data into output/")
+    p_demo.add_argument("--output-dir", default="", help="Output directory (default: output/)")
 
     return parser
 
@@ -492,6 +826,7 @@ def main(argv: Optional[list] = None) -> int:
         "compare": cmd_compare,
         "export": cmd_export,
         "diagnose": cmd_diagnose,
+        "demo-report": cmd_demo_report,
     }
 
     handler = handlers.get(args.command)

@@ -49,9 +49,37 @@ engine, and produces multi-format reports — all from a single CLI command or a
 - **Multi-format reports** — JSON, CSV, Markdown, HTML (Jinja2), Excel (openpyxl, 7 sheets)
 - **SQLite session history** — versioned schema migrations, session comparison with delta %
 - **PySide6 GUI** — QMainWindow with sidebar navigation, QThread workers (GUI never blocks)
-- **argparse CLI** — 8 commands with `--json` flag and exit codes 0/1/2
+- **argparse CLI** — 10 commands with `--json` flag and exit codes 0/1/2
 - **Graceful degradation** — every collector returns partial data; missing hardware or
   tools produce informative findings, not crashes
+
+### Feature Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| System Inspector | Implemented | Works without GPU |
+| Memory Benchmark | Implemented | Requires CUDA GPU + native binary |
+| Kernel Lab (7 kernels) | Implemented | Requires CUDA GPU + native binary |
+| Diagnosis Engine | Implemented | Works without GPU |
+| GPU Insight Score | Implemented | Works without GPU |
+| Multi-format Reports | Implemented | JSON/CSV/MD always; HTML needs jinja2; Excel needs openpyxl |
+| SQLite History | Implemented | |
+| PySide6 GUI | Partial | Requires PySide6; pages are stubs |
+| CLI Automation | Implemented | 10 commands |
+| CUDA to HIP Demo | Partial | vector_add_hip, reduction_hip, gemm_naive_hip — NOT_VALIDATED on AMD |
+| prefix_sum kernel | Skeleton / NOT_VALIDATED | Blelloch scan skeleton, not performance-optimized |
+| convolution_2d kernel | Skeleton / NOT_VALIDATED | Tiled 2D conv skeleton, boundary conditions incomplete |
+| softmax / layer_norm / GELU | **ROADMAP** | Not implemented |
+| Flash Attention | **ROADMAP** | Not implemented |
+| INT8 quantization | **ROADMAP** | Not implemented |
+| PyTorch extension | **ROADMAP** | Not implemented |
+| TensorRT plugin | **ROADMAP** | Not implemented |
+| cuFFT / cuBLAS benchmarks | **ROADMAP** | Not implemented |
+| Streamlit dashboard | **ROADMAP** | Not implemented |
+| Multi-machine import | **ROADMAP** | Not implemented |
+| Company report templates | **ROADMAP** | Not implemented |
+| Batch execution | **ROADMAP** | Not implemented |
+| AMD HIP real benchmark | NOT_VALIDATED | Requires AMD GPU + ROCm |
 
 ---
 
@@ -114,8 +142,8 @@ gpu-insight --version
 ## CLI Usage
 
 ```
-usage: gpu-insight [-h] [--version] {system-info,gpu-info,quick-test,full-test,
-                                      single-test,diagnose,report,gui} ...
+usage: gpu-insight [-h] [--version] {system-info,quick-test,full-test,benchmark,
+                                      diagnose,export,history,compare,demo-report} ...
 ```
 
 ### Commands
@@ -123,13 +151,17 @@ usage: gpu-insight [-h] [--version] {system-info,gpu-info,quick-test,full-test,
 | Command | Description | Key Options |
 |---------|-------------|-------------|
 | `system-info` | Collect and display system + GPU info | `--json` |
-| `gpu-info` | GPU-specific info (driver, VRAM, clocks) | `--json` |
 | `quick-test` | Run quick benchmark suite | `--json`, `--no-save`, `--output-dir` |
-| `full-test` | Run full benchmark suite | `--json`, `--no-save`, `--output-dir`, `--repeat N` |
-| `single-test` | Run one specific benchmark | `--test NAME`, `--repeat N`, `--size N`, `--block-size N` |
-| `diagnose` | Run diagnosis on last session | `--session-id ID`, `--json` |
-| `report` | Generate report from session | `--format json/csv/md/html/excel`, `--output FILE` |
-| `gui` | Launch PySide6 GUI | — |
+| `full-test` | Run full benchmark suite | `--json`, `--no-save`, `--output-dir` |
+| `benchmark` | Run one specific benchmark | `--test NAME`, `--json` |
+| `diagnose` | Show diagnosis for a session | `--session ID` or `--latest`, `--json` |
+| `export` | Generate report from session | `--session ID` or `--latest`, `--format json/csv/md/html/xlsx` |
+| `history` | List stored sessions | `--json` |
+| `compare` | Compare two sessions | `--session-a ID`, `--session-b ID`, `--json` |
+| `demo-report` | Generate sample reports from mock data | `--output-dir DIR` |
+
+> **Note:** The `gui` command requires PySide6 to be installed (`pip install PySide6`).
+> It is not registered in the CLI parser by default in v0.1.0 but can be launched via `python -m app.main`.
 
 ### Exit Codes
 
@@ -142,20 +174,32 @@ usage: gpu-insight [-h] [--version] {system-info,gpu-info,quick-test,full-test,
 ### Examples
 
 ```bash
-# Show all GPU info as JSON
-gpu-insight gpu-info --json
+# Show all system + GPU info as JSON
+gpu-insight system-info --json
 
-# Run a single vector_add benchmark with 20 repeats
-gpu-insight single-test --test vector_add --repeat 20
+# Run a single vector_add benchmark
+gpu-insight benchmark --test vector_add
+
+# Run a single memory bandwidth benchmark (alias: pcie)
+gpu-insight benchmark --test memory
 
 # Generate an HTML report from the most recent session
-gpu-insight report --format html --output report.html
+gpu-insight export --latest --format html
 
-# Full test, don't save to database, save reports to custom dir
-gpu-insight full-test --no-save --output-dir /tmp/gpu_reports
+# Full test, don't save to database
+gpu-insight full-test --no-save
 
-# Run diagnosis on a specific stored session
-gpu-insight diagnose --session-id abc123
+# Run diagnosis on the most recent stored session
+gpu-insight diagnose --latest
+
+# Generate demo reports from mock data (no GPU required)
+gpu-insight demo-report --output-dir output/
+
+# List all stored sessions
+gpu-insight history
+
+# Compare two sessions
+gpu-insight compare --session-a 1 --session-b 2
 ```
 
 ---
@@ -276,13 +320,13 @@ with WAL mode and foreign key enforcement.
 
 ```bash
 # List all stored sessions
-gpu-insight report --list-sessions
+gpu-insight history
 
 # Compare two sessions (shows delta %)
-gpu-insight report --compare SESSION_ID_1 SESSION_ID_2
+gpu-insight compare --session-a 1 --session-b 2
 
 # Generate report from a stored session
-gpu-insight report --session-id SESSION_ID --format html
+gpu-insight export --session 1 --format html
 ```
 
 Schema migrations run automatically. The database version is tracked in `schema_version`.

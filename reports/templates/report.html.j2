@@ -399,6 +399,60 @@
     </div>
   </div>
 
+  <!-- Interview Demo Summary -->
+  <div class="section">
+    <div class="section-header">Interview Demo Summary — Implemented vs. Roadmap Features</div>
+    <div class="section-body">
+      <p style="margin-bottom:12px;font-size:13px"><strong>GPU Insight Lab v{{ app_version }}</strong> — Feature Coverage</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <p style="font-weight:600;margin-bottom:8px;color:#2e7d32">Implemented Features</p>
+          <ul style="padding-left:16px;font-size:13px">
+            <li>System Inspector (CPU/GPU/PCIe/CUDA telemetry)</li>
+            <li>Memory Benchmark (H2D/D2H/D2D via native CUDA binary)</li>
+            <li>Kernel Lab (vector_add, reduction, transpose, gemm_naive, gemm_tiled, stream_pipeline)</li>
+            <li>Evidence-based Diagnosis Engine (9 rules)</li>
+            <li>GPU Insight Score (0-100 composite, 6 categories)</li>
+            <li>Multi-format Reports (JSON, CSV, Markdown, HTML, Excel)</li>
+            <li>SQLite Session History with delta comparison</li>
+            <li>PySide6 GUI (QMainWindow + QThread workers)</li>
+            <li>CLI Automation (10 commands, --json flag)</li>
+            <li>CUDA to HIP Portability Demo (vector_add_hip.cpp)</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-weight:600;margin-bottom:8px;color:#c62828">Roadmap / NOT YET IMPLEMENTED</p>
+          <ul style="padding-left:16px;font-size:13px;color:#666">
+            <li>ROADMAP: softmax, layer_norm, GELU, Flash Attention</li>
+            <li>ROADMAP: INT8 quantization kernel</li>
+            <li>ROADMAP: PyTorch extension / TensorRT plugin</li>
+            <li>ROADMAP: cuFFT / cuBLAS full benchmark suite</li>
+            <li>ROADMAP: Streamlit dashboard</li>
+            <li>ROADMAP: Parquet storage backend</li>
+            <li>ROADMAP: Multi-machine import / batch execution</li>
+            <li>ROADMAP: Company report templates</li>
+            <li>ROADMAP: Pass/fail policy configuration</li>
+            <li>NOT_VALIDATED: AMD HIP real GPU benchmarks</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing Data -->
+  {% if missing_data %}
+  <div class="section">
+    <div class="section-header">Missing Data</div>
+    <div class="section-body">
+      <ul style="padding-left:20px;font-size:13px">
+        {% for item in missing_data %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Limitations -->
   <div class="section">
     <div class="section-header">Limitations and Disclaimers</div>

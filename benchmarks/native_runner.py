@@ -128,13 +128,33 @@ def run_test(
     data_size: Optional[int] = None,
     timeout: int = _DEFAULT_TIMEOUT,
 ) -> Optional[Dict[str, Any]]:
-    """Run a named test. Returns parsed JSON or None."""
+    """
+    Run a named test. Returns parsed JSON dict or a SKIPPED sentinel dict.
+    Never raises an unhandled exception.
+    """
+    exe = find_executable()
+    if exe is None:
+        logger.info("Native executable not found; returning SKIPPED for test '%s'", test_name)
+        return {
+            "test_name": test_name,
+            "status": "SKIPPED",
+            "notes": "SKIPPED — native executable not found or CUDA unavailable",
+            "error": "native executable not found",
+        }
     args = ["--test", test_name, "--repeat", str(repeat), "--warmup", str(warmup)]
     if block_size is not None:
         args += ["--block-size", str(block_size)]
     if data_size is not None:
         args += ["--size", str(data_size)]
-    return _run_executable(args, timeout=timeout)
+    result = _run_executable(args, timeout=timeout)
+    if result is None:
+        return {
+            "test_name": test_name,
+            "status": "SKIPPED",
+            "notes": "SKIPPED — native executable returned no output",
+            "error": "no output from native executable",
+        }
+    return result
 
 
 def run_quick() -> List[Dict[str, Any]]:

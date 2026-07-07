@@ -170,24 +170,42 @@ int main(int argc, char* argv[]) {
         int n = size > 0 ? size : 1 << 24;
         int mat_dim = size > 0 ? size : 512;
 
-        if (test_name == "vector_add") {
+        if (test_name == "vector_add" || test_name == "vector-add") {
             results.push_back(run_vector_add(n, block_size, repeat, warmup));
         } else if (test_name == "reduction") {
             results.push_back(run_reduction(n, block_size, repeat, warmup));
         } else if (test_name == "transpose") {
             results.push_back(run_transpose(mat_dim, repeat, warmup));
-        } else if (test_name == "gemm_naive") {
+        } else if (test_name == "gemm_naive" || test_name == "gemm") {
             results.push_back(run_gemm_naive(mat_dim, mat_dim, mat_dim, 16, repeat, warmup));
         } else if (test_name == "gemm_tiled") {
             results.push_back(run_gemm_tiled(mat_dim, mat_dim, mat_dim, repeat, warmup));
-        } else if (test_name == "memory_bandwidth") {
+        } else if (test_name == "memory_bandwidth" || test_name == "memory") {
             auto r = run_memory_bandwidth(repeat, warmup);
             results.insert(results.end(), r.begin(), r.end());
-        } else if (test_name == "stream_pipeline") {
+        } else if (test_name == "pcie") {
+            // pcie is an alias for memory_bandwidth (PCIe H2D/D2H tests)
+            auto r = run_memory_bandwidth(repeat, warmup);
+            results.insert(results.end(), r.begin(), r.end());
+        } else if (test_name == "stream_pipeline" || test_name == "streams") {
             auto r = run_stream_pipeline(n, repeat, warmup);
             results.insert(results.end(), r.begin(), r.end());
         } else if (test_name == "image_grayscale") {
             results.push_back(run_image_grayscale(1920, 1080, 1, repeat, warmup));
+        } else if (test_name == "prefix_sum") {
+            // Skeleton — NOT_VALIDATED
+            BenchmarkResult r;
+            r.test_name = "prefix_sum";
+            r.notes = "skeleton - not yet optimized";
+            r.error = "NOT_VALIDATED: prefix_sum skeleton not yet implemented";
+            results.push_back(r);
+        } else if (test_name == "convolution_2d") {
+            // Skeleton — NOT_VALIDATED
+            BenchmarkResult r;
+            r.test_name = "convolution_2d";
+            r.notes = "skeleton - not yet optimized";
+            r.error = "NOT_VALIDATED: convolution_2d skeleton not yet implemented";
+            results.push_back(r);
         } else {
             fprintf(stderr, "Unknown test: %s\n", test_name.c_str());
             return 1;

@@ -28,6 +28,19 @@ class DiagnosisResult:
     recommendation: str = ""
     verification_step: str = ""
 
+    # Extended fields for interview demo readiness
+    # These are populated by the scoring engine at the session level,
+    # but included here for schema completeness so report consumers
+    # can always reference them without key errors.
+    gpu_insight_score: Optional[float] = None      # 0-100 composite score
+    health_score: Optional[float] = None           # alias for gpu_insight_score
+    bottleneck_classification: str = ""            # e.g. PCIE_TRANSFER_BOUND
+    missing_data: List[str] = field(default_factory=list)
+    deductions: List[Dict[str, Any]] = field(default_factory=list)
+    positive_findings: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+    verification_steps: List[str] = field(default_factory=list)
+
 
 CATEGORIES = {
     "HEALTHY",

@@ -194,6 +194,54 @@ def generate(
         lines.append("No diagnosis results.")
     lines.append("")
 
+    # Missing data section
+    score_details = data.get("score_details", {}) or {}
+    missing_items = score_details.get("missing_data", []) or []
+    if missing_items:
+        lines.append("## Missing Data")
+        lines.append("")
+        for m in missing_items:
+            lines.append(f"- {m}")
+        lines.append("")
+
+    # Interview Demo Summary
+    lines.append("## Interview Demo Summary — Implemented vs. Roadmap Features")
+    lines.append("")
+    lines.append("### Implemented Features")
+    lines.append("")
+    for feat in [
+        "System Inspector (CPU/GPU/PCIe/CUDA telemetry)",
+        "Memory Benchmark (H2D/D2H/D2D via native CUDA binary)",
+        "Kernel Lab (vector_add, reduction, transpose, gemm_naive, gemm_tiled, stream_pipeline)",
+        "Evidence-based Diagnosis Engine (9 rules, non-empty evidence strings required)",
+        "GPU Insight Score (0-100 composite across 6 categories)",
+        "Multi-format Reports (JSON, CSV, Markdown, HTML, Excel)",
+        "SQLite Session History with comparison",
+        "PySide6 GUI (QMainWindow + QThread workers)",
+        "CLI Automation (argparse, 10 commands, --json flag)",
+        "CUDA to HIP Portability Demo (vector_add_hip.cpp — NOT_VALIDATED on AMD hardware)",
+    ]:
+        lines.append(f"- {feat}")
+    lines.append("")
+    lines.append("### Roadmap / NOT YET IMPLEMENTED")
+    lines.append("")
+    for feat in [
+        "ROADMAP: softmax, layer_norm, GELU (AI inference kernels)",
+        "ROADMAP: Flash Attention kernel",
+        "ROADMAP: INT8 quantization",
+        "ROADMAP: PyTorch extension integration",
+        "ROADMAP: TensorRT plugin",
+        "ROADMAP: cuFFT / cuBLAS full benchmark suite",
+        "ROADMAP: Streamlit dashboard",
+        "ROADMAP: Parquet storage backend",
+        "ROADMAP: Multi-machine import",
+        "ROADMAP: Company report templates",
+        "ROADMAP: Batch execution",
+        "NOT_VALIDATED: AMD HIP real GPU benchmarks (requires ROCm hardware)",
+    ]:
+        lines.append(f"- {feat}")
+    lines.append("")
+
     # Limitations
     lines.append("## Limitations")
     lines.append("")
