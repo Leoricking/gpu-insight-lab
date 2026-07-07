@@ -13,6 +13,37 @@ engine, and produces multi-format reports — all from a single CLI command or a
 
 ---
 
+## Quick Interview Demo
+
+Run the one-command demo script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_interview_demo.ps1
+```
+
+Or run individual commands:
+
+```bash
+python -m app.cli system-info
+python -m app.cli quick-test
+python -m app.cli benchmark --test memory
+python -m app.cli benchmark --test pcie
+python -m app.cli benchmark --test gemm
+python -m app.cli diagnose --latest
+python -m app.cli demo-report
+```
+
+> **No GPU required** for `system-info`, `diagnose`, `demo-report`. Benchmarks return `SKIPPED`/`NOT_VALIDATED` when CUDA hardware is unavailable — this is expected behavior, not an error.
+
+| Document | Purpose |
+|----------|---------|
+| [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md) | Live demo script, talking points, role-specific positioning |
+| [docs/CODE_COVERAGE_AUDIT.md](docs/CODE_COVERAGE_AUDIT.md) | Honest implemented / partial / roadmap breakdown |
+| [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) | Technical claims, CUDA question bank, portfolio projects |
+| [docs/12_WEEK_CUDA_JOB_ROADMAP.md](docs/12_WEEK_CUDA_JOB_ROADMAP.md) | 12-week CUDA → NVIDIA/AMD job readiness roadmap |
+
+---
+
 ## Table of Contents
 
 1. [Features](#features)

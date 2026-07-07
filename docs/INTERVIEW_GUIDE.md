@@ -1,3 +1,6 @@
+> **Live demo**: See [docs/DEMO_GUIDE.md](DEMO_GUIDE.md) and run `scripts/run_interview_demo.ps1` for a guided walkthrough.
+> **現場展示**：請先看 [docs/DEMO_GUIDE.md](DEMO_GUIDE.md) 並執行 `scripts/run_interview_demo.ps1`。
+
 # GPU Insight Lab — Interview Guide
 
 ## Project Positioning

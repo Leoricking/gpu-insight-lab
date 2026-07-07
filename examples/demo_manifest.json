@@ -1,0 +1,72 @@
+{
+  "app_name": "GPU Insight Lab",
+  "version": "0.1.0",
+  "demo_profile": "Interview Demo — GPU Software / CUDA Performance / HPC Validation Engineer",
+  "supported_cli_commands": [
+    "system-info", "quick-test", "full-test", "benchmark",
+    "diagnose", "export", "history", "compare", "demo-report"
+  ],
+  "implemented_benchmarks": [
+    "vector-add", "reduction", "transpose", "gemm",
+    "memory", "streams", "pcie", "image-grayscale"
+  ],
+  "skeleton_benchmarks": [
+    {"name": "prefix-sum", "status": "SKELETON_NOT_VALIDATED", "note": "Blelloch scan — compiles, not performance-optimized"},
+    {"name": "convolution-2d", "status": "SKELETON_NOT_VALIDATED", "note": "Tiled 2D conv — compiles, boundary conditions incomplete"}
+  ],
+  "roadmap_benchmarks": [
+    {"name": "softmax", "status": "ROADMAP"},
+    {"name": "layer_norm", "status": "ROADMAP"},
+    {"name": "gelu", "status": "ROADMAP"},
+    {"name": "flash_attention", "status": "ROADMAP"},
+    {"name": "tensorrt_plugin", "status": "ROADMAP"},
+    {"name": "pytorch_extension", "status": "ROADMAP"},
+    {"name": "int8_quantization", "status": "ROADMAP"}
+  ],
+  "required_optional_tools": {
+    "python": "required",
+    "cuda_toolkit": "optional — required for native kernel benchmarks",
+    "nvidia_smi": "optional — required for GPU telemetry",
+    "nsight_compute": "optional — required for kernel profiling",
+    "nsight_systems": "optional — required for timeline profiling",
+    "rocm_rocminfo": "optional — required for AMD GPU validation",
+    "hipcc": "optional — required for HIP builds",
+    "pyside6": "optional — required for GUI",
+    "jinja2": "optional — required for HTML reports",
+    "openpyxl": "optional — required for Excel reports"
+  },
+  "generated_reports": [
+    "output/gpu_insight_report_sample.json",
+    "output/gpu_insight_report_sample.md",
+    "output/gpu_insight_report_sample.html",
+    "output/gpu_insight_report_sample.xlsx"
+  ],
+  "interview_target_roles": [
+    "GPU Software Engineer (NVIDIA, AMD)",
+    "CUDA Performance Engineer",
+    "HPC Software Engineer",
+    "GPU Validation Engineer",
+    "CUDA Developer",
+    "AMD HIP / ROCm Engineer",
+    "GPU Platform Software Engineer"
+  ],
+  "validation_status": {
+    "system_inspector": "IMPLEMENTED",
+    "memory_benchmark": "IMPLEMENTED",
+    "kernel_lab": "IMPLEMENTED",
+    "pcie_analyzer": "PARTIAL",
+    "diagnosis_engine": "IMPLEMENTED",
+    "gpu_insight_score": "IMPLEMENTED",
+    "report_studio": "IMPLEMENTED",
+    "sqlite_history": "IMPLEMENTED",
+    "pyside6_gui": "PARTIAL",
+    "cli_automation": "IMPLEMENTED",
+    "cuda_hip_portability": "PARTIAL_NOT_VALIDATED",
+    "prefix_sum_kernel": "SKELETON_NOT_VALIDATED",
+    "convolution_2d_kernel": "SKELETON_NOT_VALIDATED",
+    "ai_inference_kernels": "ROADMAP",
+    "multi_machine_import": "ROADMAP",
+    "batch_execution": "ROADMAP",
+    "company_report_templates": "ROADMAP"
+  }
+}

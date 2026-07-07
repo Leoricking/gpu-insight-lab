@@ -732,7 +732,8 @@ def cmd_demo_report(args: argparse.Namespace) -> int:
             print(f"  [{fmt.upper():4s}] FAILED: {exc}", file=sys.stderr)
             results[fmt] = f"ERROR: {exc}"
 
-    print(f"\nDemo reports generated in: {output_dir.resolve()}")
+    print(f"\nGPU Insight Lab Demo Report Generated")
+    print(f"Reports written to: {output_dir.resolve()}")
     return 0
 
 

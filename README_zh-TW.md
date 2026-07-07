@@ -13,6 +13,37 @@ GPU Insight Lab 是一套以 Python 為基礎的 GPU 效能診斷平台，能夠
 
 ---
 
+## 面試快速展示
+
+一鍵執行 demo 腳本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_interview_demo.ps1
+```
+
+或逐步執行：
+
+```bash
+python -m app.cli system-info
+python -m app.cli quick-test
+python -m app.cli benchmark --test memory
+python -m app.cli benchmark --test pcie
+python -m app.cli benchmark --test gemm
+python -m app.cli diagnose --latest
+python -m app.cli demo-report
+```
+
+> **無 GPU 亦可執行** `system-info`、`diagnose`、`demo-report`。沒有 CUDA 硬體時，benchmark 回傳 `SKIPPED`/`NOT_VALIDATED`——這是設計行為，不是錯誤。
+
+| 文件 | 用途 |
+|------|------|
+| [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md) | 現場展示腳本、面試說法、職缺定位 |
+| [docs/CODE_COVERAGE_AUDIT.md](docs/CODE_COVERAGE_AUDIT.md) | 已實作 / 部分 / 路線圖 誠實對照表 |
+| [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) | 技術宣稱佐證、CUDA 題庫、作品集專案 |
+| [docs/12_WEEK_CUDA_JOB_ROADMAP.md](docs/12_WEEK_CUDA_JOB_ROADMAP.md) | 12 週 CUDA → NVIDIA/AMD 求職路線圖 |
+
+---
+
 ## 目錄
 
 1. [功能特色](#功能特色)
